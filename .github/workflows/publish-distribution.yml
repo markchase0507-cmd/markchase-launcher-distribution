@@ -53,7 +53,7 @@ jobs:
             ['markchase-low-on-fire','Low On Fire','resourcepacks/MarkChase - Low On Fire.zip','https://www.cursemaven.com/curse/maven/low-on-fire-580683/7825035/low-on-fire-580683-7825035.zip'],
             ['markchase-low-shield','The Low Shield','resourcepacks/MarkChase - The Low Shield.zip','https://www.cursemaven.com/curse/maven/the-low-shield-1634775/8554199/the-low-shield-1634775-8554199.zip']
           ]
-          server.modules = [{id:'net.fabricmc:fabric-loader:0.19.3',name:'Fabric Loader 0.19.3',type:'Fabric',artifact:await artifact('https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.19.3/fabric-loader-0.19.3.jar'),subModules:[{id:'fabric-loader-0.19.3-26.2',name:'Fabric 26.2 version manifest',type:'VersionManifest',artifact:await artifact('https://meta.fabricmc.net/v2/versions/loader/26.2/0.19.3/1.1.2/profile/json')}]}]
+          server.modules = [{id:'net.fabricmc:fabric-loader:0.19.3',name:'Fabric Loader 0.19.3',type:'Fabric',artifact:await artifact('https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.19.3/fabric-loader-0.19.3.jar'),subModules:[{id:'fabric-loader-0.19.3-26.2',name:'Fabric 26.2 version manifest',type:'VersionManifest',artifact:await artifact('https://meta.fabricmc.net/v2/versions/loader/26.2/0.19.3/profile/json')}]}]
           for (const [id,name,url] of mods) server.modules.push({id,name,type:'FabricMod',required:{value:true,def:true},artifact:await artifact(url)})
           for (const [id,name,path,url] of packs) server.modules.push({id,name,type:'File',artifact:{...await artifact(url),path}})
           await mkdir('_site/launcher',{recursive:true})
