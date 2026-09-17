@@ -1,0 +1,67 @@
+name: Publish launcher distribution
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-distribution.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: launcher-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify downloads and generate distribution
+        run: |
+          node --input-type=module <<'JS'
+          import { createHash } from 'node:crypto'
+          import { mkdir, writeFile } from 'node:fs/promises'
+          const server = {id:'markchase-fabric-26.2', name:'MarkChase 서버', description:'Minecraft 26.2 · Fabric 0.19.3', version:'0.1.0', address:'markchase08.mcv.kr:25565', minecraftVersion:'26.2', mainServer:true, autoconnect:true, javaOptions:{supported:'>=25',suggestedMajor:25,ram:{minimum:2048,recommended:4096}}}
+          async function artifact(url) {
+            console.log('Checking', url)
+            const r = await fetch(url, {signal:AbortSignal.timeout(30000)})
+            if (!r.ok) throw new Error('HTTP '+r.status+' '+url)
+            const b = Buffer.from(await r.arrayBuffer())
+            if (/\.(jar|zip)$/.test(url) && (b[0] !== 80 || b[1] !== 75)) throw new Error('Not a ZIP/JAR: '+url)
+            if (url.endsWith('/profile/json') && JSON.parse(b.toString()).inheritsFrom !== server.minecraftVersion) throw new Error('Wrong Minecraft profile')
+            return {url,size:b.length,MD5:createHash('md5').update(b).digest('hex')}
+          }
+          const mods = [
+            ['maven.modrinth:fabric-api:Kr4WG5mG','Fabric API 0.154.2+26.2','https://api.modrinth.com/maven/maven/modrinth/P7dR8mSH/Kr4WG5mG/P7dR8mSH-Kr4WG5mG.jar'],
+            ['maven.modrinth:konkrete:YnnkbRci','Konkrete 1.11.0','https://api.modrinth.com/maven/maven/modrinth/J81TRJWm/YnnkbRci/J81TRJWm-YnnkbRci.jar'],
+            ['curseforge:cloth-config:8269699','Cloth Config 26.2.155','https://www.cursemaven.com/curse/maven/cloth-config-348521/8269699/cloth-config-348521-8269699.jar'],
+            ['curseforge:just-zoom:8316457','Just Zoom 2.1.5','https://www.cursemaven.com/curse/maven/just-zoom-561885/8316457/just-zoom-561885-8316457.jar'],
+            ['curseforge:freelook:8287694','Freelook 1.4.3','https://www.cursemaven.com/curse/maven/freelook-fabric-498017/8287694/freelook-fabric-498017-8287694.jar'],
+            ['curseforge:gamma-utils:8514509','Gamma Utils 3.1.1','https://www.cursemaven.com/curse/maven/gamma-utils-492295/8514509/gamma-utils-492295-8514509.jar'],
+            ['curseforge:sodium:8859535','Sodium 0.9.2','https://www.cursemaven.com/curse/maven/sodium-394468/8859535/sodium-394468-8859535.jar'],
+            ['curseforge:ferritecore:7806040','FerriteCore 9.0.0','https://www.cursemaven.com/curse/maven/ferritecore-fabric-459857/7806040/ferritecore-fabric-459857-7806040.jar']
+          ]
+          const packs = [
+            ['markchase-low-on-fire','Low On Fire','resourcepacks/MarkChase - Low On Fire.zip','https://www.cursemaven.com/curse/maven/low-on-fire-580683/7825035/low-on-fire-580683-7825035.zip'],
+            ['markchase-low-shield','The Low Shield','resourcepacks/MarkChase - The Low Shield.zip','https://www.cursemaven.com/curse/maven/the-low-shield-1634775/8554199/the-low-shield-1634775-8554199.zip']
+          ]
+          server.modules = [{id:'net.fabricmc:fabric-loader:0.19.3',name:'Fabric Loader 0.19.3',type:'Fabric',artifact:await artifact('https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.19.3/fabric-loader-0.19.3.jar'),subModules:[{id:'fabric-loader-0.19.3-26.2',name:'Fabric 26.2 version manifest',type:'VersionManifest',artifact:await artifact('https://meta.fabricmc.net/v2/versions/loader/26.2/0.19.3/1.1.2/profile/json')}]}]
+          for (const [id,name,url] of mods) server.modules.push({id,name,type:'FabricMod',required:{value:true,def:true},artifact:await artifact(url)})
+          for (const [id,name,path,url] of packs) server.modules.push({id,name,type:'File',artifact:{...await artifact(url),path}})
+          await mkdir('_site/launcher',{recursive:true})
+          await writeFile('_site/launcher/distribution.json',JSON.stringify({version:'1.0.0',servers:[server]},null,2))
+          JS
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
