@@ -84,13 +84,13 @@ jobs:
             const b = await readFile(file)
             if (b[0] !== 80 || b[1] !== 75) throw new Error('Not a JAR: '+file)
             server.modules.push({id,name,type:'FabricMod',required:{value:true,def:true},artifact:{url,size:b.length,MD5:createHash('md5').update(b).digest('hex')}})
-            await copyFile(file,'_site/launcher/packs/'+file)
+            await copyFile(file,'_site/launcher/'+file)
           }
           await mkdir('_site/launcher/packs',{recursive:true})
           for (const [id,name,file,path,url] of managedFiles) {
             const b = await readFile(file)
             server.modules.push({id,name,type:'File',artifact:{url,size:b.length,MD5:createHash('md5').update(b).digest('hex'),path}})
-            await copyFile(file,'_site/launcher/'+file)
+            await copyFile(file,'_site/launcher/packs/'+file)
           }
           for (const [id,name,path,url] of packs) server.modules.push({id,name,type:'File',artifact:{...await artifact(url),path}})
           await mkdir('_site/launcher',{recursive:true})
