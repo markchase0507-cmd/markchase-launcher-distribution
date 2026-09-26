@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/publish-distribution.yml'
       - 'mods/**'
+      - 'tacz_default_gun-*'
   workflow_dispatch:
 permissions:
   contents: read
@@ -32,7 +33,7 @@ jobs:
           node --input-type=module <<'JS'
           import { createHash } from 'node:crypto'
           import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
-          const server = {id:'markchase-fabric-26.2', name:'MarkChase 서버', description:'Minecraft 26.2 · Fabric 0.19.3', version:'0.1.1', address:'markchase08.mcv.kr:25565', minecraftVersion:'26.2', mainServer:true, autoconnect:true, javaOptions:{supported:'>=25',suggestedMajor:25,ram:{minimum:2048,recommended:4096}}}
+          const server = {id:'markchase-fabric-26.2', name:'MarkChase 서버', description:'Minecraft 26.2 · Fabric 0.19.3', version:'0.1.2', address:'markchase08.mcv.kr:25565', minecraftVersion:'26.2', mainServer:true, autoconnect:true, javaOptions:{supported:'>=25',suggestedMajor:25,ram:{minimum:2048,recommended:4096}}}
           async function artifact(url) {
             console.log('Checking', url)
             const r = await fetch(url, {signal:AbortSignal.timeout(30000)})
@@ -57,12 +58,17 @@ jobs:
             ['curseforge:ferritecore:7806040','FerriteCore 9.0.0','https://www.cursemaven.com/curse/maven/ferritecore-fabric-459857/7806040/ferritecore-fabric-459857-7806040.jar']
           ]
           const hostedMods = [
-            ['markchase:guard-client:1.0.1','MarkChase Guard Client 1.0.1','mods/MarkChaseGuard-Client-1.0.1.jar','https://markchase0507-cmd.github.io/markchase-launcher-distribution/launcher/mods/MarkChaseGuard-Client-1.0.1.jar'],
+            ['markchase:guard-client:1.0.2','MarkChase Guard Client 1.0.2','mods/MarkChaseGuard-Client-1.0.2.jar','https://markchase0507-cmd.github.io/markchase-launcher-distribution/launcher/mods/MarkChaseGuard-Client-1.0.2.jar'],
             ['markchase:tacz26:0.1.9','Tacz26 0.1.9','mods/tacz26-fabric-26.2-2.jar','https://markchase0507-cmd.github.io/markchase-launcher-distribution/launcher/mods/tacz26-fabric-26.2-2.jar']
           ]
           const packs = [
             ['markchase-low-on-fire','Low On Fire','resourcepacks/MarkChase - Low On Fire.zip','https://www.cursemaven.com/curse/maven/low-on-fire-580683/7825035/low-on-fire-580683-7825035.zip'],
             ['markchase-low-shield','The Low Shield','resourcepacks/MarkChase - The Low Shield.zip','https://www.cursemaven.com/curse/maven/the-low-shield-1634775/8554199/the-low-shield-1634775-8554199.zip']
+          ]
+          const managedFiles = [
+            ['markchase-tacz-default-gun-pack-part-00','Tacz Default Gun Pack 1.0.0 (1/3)','tacz_default_gun-1.0.0.zip.part00','tacz26/.markchase/tacz_default_gun-1.0.0.zip.part00','https://markchase0507-cmd.github.io/markchase-launcher-distribution/launcher/packs/tacz_default_gun-1.0.0.zip.part00'],
+            ['markchase-tacz-default-gun-pack-part-01','Tacz Default Gun Pack 1.0.0 (2/3)','tacz_default_gun-1.0.0.zip.part01','tacz26/.markchase/tacz_default_gun-1.0.0.zip.part01','https://markchase0507-cmd.github.io/markchase-launcher-distribution/launcher/packs/tacz_default_gun-1.0.0.zip.part01'],
+            ['markchase-tacz-default-gun-pack-part-02','Tacz Default Gun Pack 1.0.0 (3/3)','tacz_default_gun-1.0.0.zip.part02','tacz26/.markchase/tacz_default_gun-1.0.0.zip.part02','https://markchase0507-cmd.github.io/markchase-launcher-distribution/launcher/packs/tacz_default_gun-1.0.0.zip.part02']
           ]
           const profileUrl = 'https://meta.fabricmc.net/v2/versions/loader/26.2/0.19.3/profile/json'
           const profileResponse = await fetch(profileUrl,{signal:AbortSignal.timeout(30000)})
@@ -78,11 +84,17 @@ jobs:
             const b = await readFile(file)
             if (b[0] !== 80 || b[1] !== 75) throw new Error('Not a JAR: '+file)
             server.modules.push({id,name,type:'FabricMod',required:{value:true,def:true},artifact:{url,size:b.length,MD5:createHash('md5').update(b).digest('hex')}})
+            await copyFile(file,'_site/launcher/packs/'+file)
+          }
+          await mkdir('_site/launcher/packs',{recursive:true})
+          for (const [id,name,file,path,url] of managedFiles) {
+            const b = await readFile(file)
+            server.modules.push({id,name,type:'File',artifact:{url,size:b.length,MD5:createHash('md5').update(b).digest('hex'),path}})
             await copyFile(file,'_site/launcher/'+file)
           }
           for (const [id,name,path,url] of packs) server.modules.push({id,name,type:'File',artifact:{...await artifact(url),path}})
           await mkdir('_site/launcher',{recursive:true})
-          await writeFile('_site/launcher/distribution.json',JSON.stringify({version:'1.0.2',servers:[server]},null,2))
+          await writeFile('_site/launcher/distribution.json',JSON.stringify({version:'1.0.3',servers:[server]},null,2))
           JS
       - uses: actions/upload-pages-artifact@v3
         with:
